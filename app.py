@@ -11,105 +11,97 @@ def webhook():
     try:
         sender = request.form.get("From")
         msg = request.form.get("Body").strip().lower()
-        print(f"Received message from {sender}: {msg}")  # Debug log
+        print(f"Received message from {sender}: {msg}")
         resp = MessagingResponse()
 
-        # Reset session
+        # Restart session
         if msg == "restart":
             user_state.pop(sender, None)
-            resp.message("🔄 Restarted! Type *menu* to start again.")
+            resp.message("🔄 Restarted! Type *menu* to begin.")
             return Response(str(resp), mimetype="application/xml")
 
-
-        # Initialize if first time
+        # New session
         if sender not in user_state:
-            user_state[sender] = {"step": "waiting_for_menu"}
-            resp.message("👋 Welcome to Mood Music Bot!\nType *menu* to get started.")
+            user_state[sender] = {"step": "waiting"}
+            resp.message("👋 Welcome to Mood Music Bot! Type *menu* to get started.")
             return Response(str(resp), mimetype="application/xml")
-
 
         state = user_state[sender]
 
-        # Show menu
+        # Menu command
         if msg == "menu":
-            user_state[sender] = {"step": "choose_mood"}
+            state["step"] = "choose_mood"
             resp.message(get_mood_menu())
             return Response(str(resp), mimetype="application/xml")
 
-
-        # Step 1: Mood selection
+        # Mood selection from menu
         if state["step"] == "choose_mood":
             moods = get_mood_dict()
             if msg in moods:
                 selected_mood = moods[msg]
                 if selected_mood == "manual":
                     state["step"] = "manual_mood_input"
-                    resp.message("✍️ Please describe your mood (e.g., 'I'm feeling low today')")
+                    resp.message("✍️ Please describe your current mood in a sentence.")
                     return Response(str(resp), mimetype="application/xml")
-
-                state["mood"] = selected_mood
-                state["step"] = "choose_type"
-                resp.message(get_music_type_menu(selected_mood))
-                return Response(str(resp), mimetype="application/xml")
-
+                else:
+                    state["mood"] = selected_mood
+                    state["step"] = "choose_type"
+                    resp.message(get_music_type_menu(selected_mood))
+                    return Response(str(resp), mimetype="application/xml")
             else:
-                resp.message("❌ Invalid option. Please choose a number from 1 to 9.\n" + get_mood_menu())
+                resp.message("❌ Invalid choice. Please choose a number from 1–9.\n" + get_mood_menu())
                 return Response(str(resp), mimetype="application/xml")
 
-
-        # Step 1b: Manual NLP mood
+        # NLP mood detection from user sentence
         if state["step"] == "manual_mood_input":
             detected_mood = detect_mood_from_text(msg)
             valid_moods = get_mood_dict().values()
-            print(f"Detected mood: {detected_mood}")  # Debug log
+            print(f"🧠 NLP detected mood: {detected_mood}")
 
-            if detected_mood not in valid_moods:
+            if detected_mood in valid_moods:
+                state["mood"] = detected_mood
+                state["step"] = "choose_type"
+                resp.message(f"✅ Detected mood: *{detected_mood.capitalize()}*\n" + get_music_type_menu(detected_mood))
+                return Response(str(resp), mimetype="application/xml")
+            else:
                 resp.message("😕 Sorry, couldn't detect your mood. Try again or type *menu*.")
                 return Response(str(resp), mimetype="application/xml")
 
-
-            state["mood"] = detected_mood
-            state["step"] = "choose_type"
-            resp.message(f"✅ Detected mood: *{detected_mood.capitalize()}*\n" + get_music_type_menu(detected_mood))
-            return Response(str(resp), mimetype="application/xml")
-
-
-        # Step 2: Choose music type
+        # Music type selection
         if state["step"] == "choose_type":
             types = get_type_dict()
             if msg not in types:
-                resp.message("❌ Invalid type. Choose a number from 1 to 6.")
+                resp.message("❌ Invalid type. Choose a number from 1–6.")
                 return Response(str(resp), mimetype="application/xml")
 
-
-            mood = state["mood"]
+            mood = state.get("mood", "happy")
             music_type = types[msg]
 
             try:
-                playlist = get_playlist_for_mood_type(mood, music_type)
+                playlist_url = get_playlist_for_mood_type(mood, music_type)
                 reply = (
-                    f"🎧 Here's a *{music_type} {mood}* playlist:\n{playlist}\n\n"
-                    "Type *menu* to try again or *restart* to reset."
+                    f"🎧 Here's a *{music_type.capitalize()} {mood.capitalize()}* playlist:\n"
+                    f"{playlist_url}\n\n"
+                    "Type *menu* to explore again or *restart* to reset."
                 )
+                resp.message(reply)
             except Exception as e:
-                print("Error fetching playlist:", e)
-                reply = "⚠️ Could not get music. Try again later."
+                print("⚠️ Error getting playlist:", e)
+                resp.message("⚠️ Something went wrong. Please try again later.")
 
+            # Clean session after recommendation
             user_state.pop(sender, None)
-            resp.message(reply)
             return Response(str(resp), mimetype="application/xml")
 
-
         # Fallback
-        resp.message("🤖 I didn’t understand. Type *menu* to start or *restart* to reset.")
+        resp.message("🤖 I didn’t understand that. Type *menu* to start or *restart* to reset.")
         return Response(str(resp), mimetype="application/xml")
 
-
     except Exception as e:
-        print("Error in webhook:", e)
+        print("🔥 Error in webhook:", e)
         return "Error", 500
 
-# --- Helper Functions ---
+# --- Helper Dictionaries and Menus ---
 
 def get_mood_dict():
     return {
@@ -135,8 +127,8 @@ def get_mood_menu():
         "6. Calm\n"
         "7. Study\n"
         "8. Workout\n"
-        "9. ✍️ Enter Mood Manually\n\n"
-        "Reply with a number (e.g., 3)"
+        "9. ✍️ Enter Manually\n\n"
+        "Reply with a number (e.g., 3 or 9)"
     )
 
 def get_type_dict():
@@ -151,17 +143,17 @@ def get_type_dict():
 
 def get_music_type_menu(mood):
     return (
-        f"🧠 Detected Mood: *{mood.capitalize()}*\n"
-        "🎶 Pick Music Type:\n"
+        f"🧠 Mood: *{mood.capitalize()}*\n"
+        "🎶 Choose music type:\n"
         "1. Hindi\n"
         "2. English\n"
         "3. Bollywood\n"
         "4. Lofi\n"
         "5. Instrumental\n"
         "6. Devotional\n\n"
-        "Reply with a number (e.g., 2)"
+        "Reply with a number (e.g., 1)"
     )
 
-# 🟢 Required for local running
+# Run app
 if __name__ == "__main__":
     app.run(debug=True)
