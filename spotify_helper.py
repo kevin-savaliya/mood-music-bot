@@ -18,13 +18,13 @@ def get_access_token():
     response = requests.post("https://accounts.spotify.com/api/token", headers=headers, data=data)
     return response.json()["access_token"]
 
-def get_playlist_for_mood(mood, language):
+def get_playlist_for_mood_type(mood, music_type):
     token = get_access_token()
     headers = {
         "Authorization": f"Bearer {token}"
     }
 
-    query = f"{language} {mood} playlist"
+    query = f"{music_type} {mood} playlist"
     url = f"https://api.spotify.com/v1/search?q={quote(query)}&type=playlist&limit=1"
     response = requests.get(url, headers=headers)
     data = response.json()
@@ -33,4 +33,4 @@ def get_playlist_for_mood(mood, language):
         playlist_url = data["playlists"]["items"][0]["external_urls"]["spotify"]
         return playlist_url
     except:
-        return "No playlist found. Try another mood/language!"
+        return "🚫 No playlist found. Try again."
