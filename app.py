@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask, request, Response
 from twilio.twiml.messaging_response import MessagingResponse
 from spotify_helper import get_playlist_for_mood_type
 from nlp_helper import detect_mood_from_text
@@ -18,13 +18,15 @@ def webhook():
         if msg == "restart":
             user_state.pop(sender, None)
             resp.message("🔄 Restarted! Type *menu* to start again.")
-            return str(resp)
+            return Response(str(resp), mimetype="application/xml")
+
 
         # Initialize if first time
         if sender not in user_state:
             user_state[sender] = {"step": "waiting_for_menu"}
             resp.message("👋 Welcome to Mood Music Bot!\nType *menu* to get started.")
-            return str(resp)
+            return Response(str(resp), mimetype="application/xml")
+
 
         state = user_state[sender]
 
@@ -32,7 +34,8 @@ def webhook():
         if msg == "menu":
             user_state[sender] = {"step": "choose_mood"}
             resp.message(get_mood_menu())
-            return str(resp)
+            return Response(str(resp), mimetype="application/xml")
+
 
         # Step 1: Mood selection
         if state["step"] == "choose_mood":
@@ -42,15 +45,17 @@ def webhook():
                 if selected_mood == "manual":
                     state["step"] = "manual_mood_input"
                     resp.message("✍️ Please describe your mood (e.g., 'I'm feeling low today')")
-                    return str(resp)
+                    return Response(str(resp), mimetype="application/xml")
 
                 state["mood"] = selected_mood
                 state["step"] = "choose_type"
                 resp.message(get_music_type_menu(selected_mood))
-                return str(resp)
+                return Response(str(resp), mimetype="application/xml")
+
             else:
                 resp.message("❌ Invalid option. Please choose a number from 1 to 9.\n" + get_mood_menu())
-                return str(resp)
+                return Response(str(resp), mimetype="application/xml")
+
 
         # Step 1b: Manual NLP mood
         if state["step"] == "manual_mood_input":
@@ -60,19 +65,22 @@ def webhook():
 
             if detected_mood not in valid_moods:
                 resp.message("😕 Sorry, couldn't detect your mood. Try again or type *menu*.")
-                return str(resp)
+                return Response(str(resp), mimetype="application/xml")
+
 
             state["mood"] = detected_mood
             state["step"] = "choose_type"
             resp.message(f"✅ Detected mood: *{detected_mood.capitalize()}*\n" + get_music_type_menu(detected_mood))
-            return str(resp)
+            return Response(str(resp), mimetype="application/xml")
+
 
         # Step 2: Choose music type
         if state["step"] == "choose_type":
             types = get_type_dict()
             if msg not in types:
                 resp.message("❌ Invalid type. Choose a number from 1 to 6.")
-                return str(resp)
+                return Response(str(resp), mimetype="application/xml")
+
 
             mood = state["mood"]
             music_type = types[msg]
@@ -89,11 +97,13 @@ def webhook():
 
             user_state.pop(sender, None)
             resp.message(reply)
-            return str(resp)
+            return Response(str(resp), mimetype="application/xml")
+
 
         # Fallback
         resp.message("🤖 I didn’t understand. Type *menu* to start or *restart* to reset.")
-        return str(resp)
+        return Response(str(resp), mimetype="application/xml")
+
 
     except Exception as e:
         print("Error in webhook:", e)
