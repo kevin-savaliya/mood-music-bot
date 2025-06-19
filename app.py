@@ -12,19 +12,16 @@ def webhook():
     msg = request.form.get("Body").strip().lower()
     resp = MessagingResponse()
 
-    # Handle restart
     if msg == "restart":
         user_state.pop(sender, None)
         resp.message("🔄 Restarted! Type 'menu' to start.")
         return str(resp)
 
-    # Show menu
     if msg == "menu":
         user_state[sender] = {"step": "choose_mood"}
         resp.message(get_mood_menu())
         return str(resp)
 
-    # No session yet
     if sender not in user_state:
         user_state[sender] = {"step": "choose_mood"}
         resp.message("👋 Welcome! Type 'menu' to get started or 'restart' to reset.")
@@ -34,18 +31,35 @@ def webhook():
 
     # Step 1: Choose Mood
     if state["step"] == "choose_mood":
+        moods = get_mood_dict()
+        if msg in moods:
+            selected_mood = moods[msg]
+            if selected_mood == "manual":
+                state["step"] = "manual_mood_input"
+                resp.message("✍️ Please type how you're feeling (e.g., 'I'm feeling energetic today')")
+                return str(resp)
+
+            state["mood"] = selected_mood
+            state["step"] = "choose_type"
+            resp.message(get_music_type_menu(selected_mood))
+            return str(resp)
+        else:
+            resp.message("❌ Invalid option. Please choose from the menu by typing 1–9.\n\n" + get_mood_menu())
+            return str(resp)
+
+    # Step 1B: Manual Mood Detection
+    if state["step"] == "manual_mood_input":
         detected_mood = detect_mood_from_text(msg)
         valid_moods = get_mood_dict().values()
 
-    if detected_mood not in valid_moods:
-        resp.message("🤖 I couldn’t detect your mood. Please type 'menu' to pick one manually.")
+        if detected_mood not in valid_moods:
+            resp.message("🤖 I couldn’t detect your mood accurately. Please try again or type 'menu'.")
+            return str(resp)
+
+        state["mood"] = detected_mood
+        state["step"] = "choose_type"
+        resp.message(f"✅ Detected mood: *{detected_mood.capitalize()}*\n" + get_music_type_menu(detected_mood))
         return str(resp)
-
-    state["mood"] = detected_mood
-    state["step"] = "choose_type"
-    resp.message(get_music_type_menu(detected_mood))
-    return str(resp)
-
 
     # Step 2: Choose Music Type
     if state["step"] == "choose_type":
@@ -66,7 +80,6 @@ def webhook():
         except:
             reply = "⚠️ Something went wrong while fetching music. Please try again."
 
-        # Reset after completion
         user_state.pop(sender, None)
         resp.message(reply)
         return str(resp)
@@ -86,7 +99,8 @@ def get_mood_dict():
         "5": "energetic",
         "6": "calm",
         "7": "study",
-        "8": "workout"
+        "8": "workout",
+        "9": "manual"
     }
 
 def get_mood_menu():
@@ -99,8 +113,9 @@ def get_mood_menu():
         "5. Energetic\n"
         "6. Calm\n"
         "7. Study\n"
-        "8. Workout\n\n"
-        "Reply with the number (e.g., 3)"
+        "8. Workout\n"
+        "9. ✍️ Enter Manually (Smart Mood Detection)\n\n"
+        "Reply with a number (e.g., 3 or 9)"
     )
 
 def get_type_dict():
@@ -115,7 +130,7 @@ def get_type_dict():
 
 def get_music_type_menu(mood):
     return (
-        f"🧠 You selected *{mood.capitalize()}*.\n"
+        f"🧠 You selected *{mood.capitalize()}* mood.\n"
         "🎶 Choose your music type:\n"
         "1. Hindi\n"
         "2. English\n"
