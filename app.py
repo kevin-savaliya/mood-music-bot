@@ -1,6 +1,7 @@
 from flask import Flask, request
 from twilio.twiml.messaging_response import MessagingResponse
 from spotify_helper import get_playlist_for_mood_type
+from nlp_helper import detect_mood_from_text
 
 app = Flask(__name__)
 user_state = {}
@@ -33,15 +34,18 @@ def webhook():
 
     # Step 1: Choose Mood
     if state["step"] == "choose_mood":
-        moods = get_mood_dict()
-        if msg not in moods:
-            resp.message("❌ Invalid mood. Please choose from the menu:\n" + get_mood_menu())
-            return str(resp)
+        detected_mood = detect_mood_from_text(msg)
+        valid_moods = get_mood_dict().values()
 
-        state["mood"] = moods[msg]
-        state["step"] = "choose_type"
-        resp.message(get_music_type_menu(state["mood"]))
+    if detected_mood not in valid_moods:
+        resp.message("🤖 I couldn’t detect your mood. Please type 'menu' to pick one manually.")
         return str(resp)
+
+    state["mood"] = detected_mood
+    state["step"] = "choose_type"
+    resp.message(get_music_type_menu(detected_mood))
+    return str(resp)
+
 
     # Step 2: Choose Music Type
     if state["step"] == "choose_type":
