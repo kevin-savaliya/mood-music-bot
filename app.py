@@ -1,20 +1,17 @@
 from flask import Flask, request
 from twilio.twiml.messaging_response import MessagingResponse
+from spotify_helper import get_playlist_for_mood
 
 app = Flask(__name__)
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
     msg = request.form.get("Body")
+    mood = msg.lower()
+
+    playlist_link = get_playlist_for_mood(mood)
+    response_text = f"Here’s a {mood} playlist for you 🎶:\n{playlist_link}"
+
     resp = MessagingResponse()
-
-    if "sad" in msg.lower():
-        reply = "Cheer up! Here's a playlist for you 🎶"
-    else:
-        reply = "Hi! Send me your mood and I’ll share music 🎧"
-
-    resp.message(reply)
+    resp.message(response_text)
     return str(resp)
-
-if __name__ == "__main__":
-    app.run()
