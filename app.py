@@ -47,8 +47,8 @@ def webhook():
             resp.message("❌ Invalid option. Please choose from the menu by typing 1–9.\n\n" + get_mood_menu())
             return str(resp)
 
-    # Step 1B: Manual Mood Detection
-    if state["step"] == "manual_mood_input":
+    # ✅ Step 1B: Manual Mood Input Detection
+    elif state["step"] == "manual_mood_input":
         detected_mood = detect_mood_from_text(msg)
         valid_moods = get_mood_dict().values()
 
@@ -62,7 +62,7 @@ def webhook():
         return str(resp)
 
     # Step 2: Choose Music Type
-    if state["step"] == "choose_type":
+    elif state["step"] == "choose_type":
         types = get_type_dict()
         if msg not in types:
             resp.message("❌ Invalid type. Please enter a number (1–6).")
@@ -85,8 +85,9 @@ def webhook():
         return str(resp)
 
     # Fallback
-    resp.message("🤖 I didn’t understand that. Type 'menu' to restart.")
-    return str(resp)
+    else:
+        resp.message("🤖 I didn’t understand that. Type 'menu' to restart.")
+        return str(resp)
 
 # --- Helper Functions ---
 
