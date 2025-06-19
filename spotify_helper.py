@@ -30,7 +30,6 @@ def get_playlist_for_mood_type(mood, music_type):
     data = response.json()
 
     try:
-        playlist_url = data["playlists"]["items"][0]["external_urls"]["spotify"]
-        return playlist_url
+        return data["playlists"]["items"][0]["external_urls"]["spotify"]
     except:
-        return "🚫 No playlist found. Try again."
+        raise Exception("No playlist found")
