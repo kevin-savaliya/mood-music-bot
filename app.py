@@ -53,19 +53,32 @@ def webhook():
                 return Response(str(resp), mimetype="application/xml")
 
         # NLP mood detection from user sentence
+        # Step 1b: Manual NLP mood
         if state["step"] == "manual_mood_input":
             detected_mood = detect_mood_from_text(msg)
             valid_moods = get_mood_dict().values()
             print(f"🧠 NLP detected mood: {detected_mood}")
 
-            if detected_mood in valid_moods:
-                state["mood"] = detected_mood
-                state["step"] = "choose_type"
-                resp.message(f"✅ Detected mood: *{detected_mood.capitalize()}*\n" + get_music_type_menu(detected_mood))
+            # Safety fallback
+            if not detected_mood or detected_mood.strip() == "":
+                resp.message("⚠️ Unable to detect mood. Please describe differently or type *menu*.")
                 return Response(str(resp), mimetype="application/xml")
-            else:
-                resp.message("😕 Sorry, couldn't detect your mood. Try again or type *menu*.")
+
+            if detected_mood.lower() not in valid_moods:
+                resp.message(
+                    f"😕 Sorry, detected mood *{detected_mood}* is not in our list.\n"
+                    "Try again with different words or type *menu* to start over."
+                )
                 return Response(str(resp), mimetype="application/xml")
+
+            # Proceed to music type selection
+            state["mood"] = detected_mood
+            state["step"] = "choose_type"
+            menu = get_music_type_menu(detected_mood)
+            print(f"🎯 Sending music type menu for detected mood: {detected_mood}")
+            resp.message(f"✅ Mood detected: *{detected_mood.capitalize()}*\n{menu}")
+            return Response(str(resp), mimetype="application/xml")
+
 
         # Music type selection
         if state["step"] == "choose_type":
