@@ -1,5 +1,5 @@
-flask
-twilio
-requests
+flask>=2.0.0
+twilio>=7.0.0
+requests>=2.25.0
+textblob>=0.15.0
 gunicorn
-textblob

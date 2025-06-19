@@ -8,7 +8,7 @@ app = Flask(__name__)
 user_state = {}
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 @app.route("/webhook", methods=["GET", "POST"])
@@ -18,24 +18,62 @@ def webhook():
         return "Webhook is active", 200
 
     try:
+        # Log full request data for debugging
+        logger.info(f"Received POST request: {request.form}")
+
         # Validate incoming request
         if not request.form:
             logger.error("No form data received in POST request")
-            return "Bad Request: No form data", 400
+            resp = MessagingResponse()
+            resp.message("Error: No form data received")
+            return Response(
+                str(resp),
+                status=400,
+                mimetype="application/xml",
+                headers={"Content-Type": "application/xml; charset=utf-8"}
+            )
 
         sender = request.form.get("From")
         msg = request.form.get("Body", "").strip().lower()
 
         if not sender or not msg:
             logger.error(f"Missing sender or message: sender={sender}, msg={msg}")
-            return "Bad Request: Missing sender or message", 400
+            resp = MessagingResponse()
+            resp.message("Error: Missing sender or message")
+            return Response(
+                str(resp),
+                status=400,
+                mimetype="application/xml",
+                headers={"Content-Type": "application/xml; charset=utf-8"}
+            )
 
-        logger.info(f"📩 Received message from {sender}: {msg}")
+        logger.info(f"📩 Processing message from {sender}: {msg}")
         resp = MessagingResponse()
+
+        # Initialize new session
+        if sender not in user_state:
+            user_state[sender] = {"step": "waiting"}
+            logger.info(f"New session created for {sender}")
+
+        state = user_state[sender]
+
+        # Handle menu command explicitly
+        if msg == "menu":
+            state["step"] = "choose_mood"
+            menu_text = get_mood_menu()
+            logger.info(f"Sending mood menu to {sender}: {menu_text}")
+            resp.message(menu_text)
+            return Response(
+                str(resp),
+                status=200,
+                mimetype="application/xml",
+                headers={"Content-Type": "application/xml; charset=utf-8"}
+            )
 
         # Restart session
         if msg == "restart":
             user_state.pop(sender, None)
+            logger.info(f"Session restarted for {sender}")
             resp.message("🔄 Restarted! Type *menu* to begin.")
             return Response(
                 str(resp),
@@ -44,31 +82,7 @@ def webhook():
                 headers={"Content-Type": "application/xml; charset=utf-8"}
             )
 
-        # New session
-        if sender not in user_state:
-            user_state[sender] = {"step": "waiting"}
-            resp.message("👋 Welcome to Mood Music Bot! Type *menu* to get started.")
-            return Response(
-                str(resp),
-                status=200,
-                mimetype="application/xml",
-                headers={"Content-Type": "application/xml; charset=utf-8"}
-            )
-
-        state = user_state[sender]
-
-        # Menu command
-        if msg == "menu":
-            state["step"] = "choose_mood"
-            resp.message(get_mood_menu())
-            return Response(
-                str(resp),
-                status=200,
-                mimetype="application/xml",
-                headers={"Content-Type": "application/xml; charset=utf-8"}
-            )
-
-        # Mood selection from menu
+        # Mood selection
         if state["step"] == "choose_mood":
             moods = get_mood_dict()
             if msg in moods:
@@ -79,7 +93,9 @@ def webhook():
                 else:
                     state["mood"] = selected_mood
                     state["step"] = "choose_type"
-                    resp.message(get_music_type_menu(selected_mood))
+                    menu_text = get_music_type_menu(selected_mood)
+                    logger.info(f"Sending music type menu for mood {selected_mood} to {sender}")
+                    resp.message(menu_text)
                 return Response(
                     str(resp),
                     status=200,
@@ -87,7 +103,9 @@ def webhook():
                     headers={"Content-Type": "application/xml; charset=utf-8"}
                 )
             else:
-                resp.message("❌ Invalid choice. Please choose a number from 1–9.\n" + get_mood_menu())
+                menu_text = get_mood_menu()
+                logger.info(f"Invalid mood choice from {sender}, resending menu")
+                resp.message("❌ Invalid choice. Please choose a number from 1–9.\n" + menu_text)
                 return Response(
                     str(resp),
                     status=200,
@@ -102,6 +120,7 @@ def webhook():
             logger.info(f"🧠 NLP detected mood: {detected_mood}")
 
             if not detected_mood or detected_mood.strip() == "":
+                logger.info(f"Failed to detect mood from {sender}, requesting retry")
                 resp.message("⚠️ Unable to detect mood. Please describe differently or type *menu*.")
                 return Response(
                     str(resp),
@@ -111,6 +130,7 @@ def webhook():
                 )
 
             if detected_mood.lower() not in valid_moods:
+                logger.info(f"Unsupported mood {detected_mood} detected for {sender}")
                 resp.message(
                     f"😕 Sorry, detected mood *{detected_mood}* is not supported.\n"
                     "Try again with different words or type *menu* to start over."
@@ -125,7 +145,7 @@ def webhook():
             state["mood"] = detected_mood
             state["step"] = "choose_type"
             menu = get_music_type_menu(detected_mood)
-            logger.info(f"🎯 Sending music type menu for detected mood: {detected_mood}")
+            logger.info(f"Sending music type menu for detected mood {detected_mood} to {sender}")
             resp.message(f"✅ Mood detected: *{detected_mood.capitalize()}*")
             resp.message(menu)
             return Response(
@@ -139,6 +159,7 @@ def webhook():
         if state["step"] == "choose_type":
             types = get_type_dict()
             if msg not in types:
+                logger.info(f"Invalid type choice from {sender}")
                 resp.message("❌ Invalid type. Choose a number from 1–6.")
                 return Response(
                     str(resp),
@@ -157,9 +178,10 @@ def webhook():
                     f"{playlist_url}\n\n"
                     "Type *menu* to explore again or *restart* to reset."
                 )
+                logger.info(f"Sending playlist URL to {sender}: {playlist_url}")
                 resp.message(reply)
             except Exception as e:
-                logger.error(f"⚠️ Error getting playlist: {str(e)}")
+                logger.error(f"Error getting playlist for {sender}: {str(e)}")
                 resp.message("⚠️ Something went wrong. Please try again later.")
 
             user_state.pop(sender, None)
@@ -171,6 +193,7 @@ def webhook():
             )
 
         # Fallback
+        logger.info(f"Unrecognized input from {sender}: {msg}")
         resp.message("🤖 I didn’t understand that. Type *menu* to start or *restart* to reset.")
         return Response(
             str(resp),
@@ -180,7 +203,7 @@ def webhook():
         )
 
     except Exception as e:
-        logger.error(f"🔥 Error in webhook: {str(e)}")
+        logger.error(f"🔥 Webhook error for {sender}: {str(e)}")
         resp = MessagingResponse()
         resp.message("⚠️ Server error. Please try again later.")
         return Response(
