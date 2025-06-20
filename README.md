@@ -2,8 +2,6 @@
 
 An AI-powered WhatsApp chatbot that recommends personalized Spotify playlists based on your mood. Built using **Flask**, **Twilio**, and the **Spotify Web API**, with optional mood detection using **NLP (TextBlob)**.
 
-![WhatsApp Screenshot](screenshots/whatsapp-bot-preview.jpg, screenshots/whatsapp-bot-preview.jpg,)
-
 ---
 
 ## 📌 Features
@@ -136,3 +134,9 @@ MIT License. Free to use and modify with credit.
 
 Developed with ❤️ by **Kevin Savaliya**  
 [GitHub](https://github.com/kevin-savaliya)
+
+
+![WhatsApp Screenshot](screenshots/whatsapp-bot-preview.jpg)
+![WhatsApp Screenshot](screenshots/chatbot-flow.jpg)
+![WhatsApp Screenshot](screenshots/chatbot-flow_2.jpg)
+![WhatsApp Screenshot](screenshots/chatbot-flow_3.jpg)
