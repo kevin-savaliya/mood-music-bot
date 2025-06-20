@@ -50,10 +50,22 @@ def webhook():
         logger.info(f"📩 Processing message from {sender}: {msg}")
         resp = MessagingResponse()
 
-        # Initialize new session
+        # Initialize new session with welcome message
         if sender not in user_state:
             user_state[sender] = {"step": "waiting"}
             logger.info(f"New session created for {sender}")
+            welcome_message = (
+                "👋 Hello! Welcome to the Mood Music Bot! "
+                "I’m here to suggest Spotify playlists based on your mood. "
+                "Type *menu* to start or *restart* to reset."
+            )
+            resp.message(welcome_message)
+            return Response(
+                str(resp),
+                status=200,
+                mimetype="application/xml",
+                headers={"Content-Type": "application/xml; charset=utf-8"}
+            )
 
         state = user_state[sender]
 
@@ -192,7 +204,7 @@ def webhook():
                 headers={"Content-Type": "application/xml; charset=utf-8"}
             )
 
-        # Fallback
+        # Fallback for existing sessions
         logger.info(f"Unrecognized input from {sender}: {msg}")
         resp.message("🤖 I didn’t understand that. Type *menu* to start or *restart* to reset.")
         return Response(
