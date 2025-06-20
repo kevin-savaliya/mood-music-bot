@@ -18,12 +18,12 @@ An AI-powered WhatsApp chatbot that recommends personalized Spotify playlists ba
 
 ## 📸 Screenshots
 
-> Add screenshots of your WhatsApp conversation using this bot.
-
-- `screenshots/whatsapp-bot-preview.jpg`
-- `screenshots/chatbot-flow.png`
-- `screenshots/chatbot-flow_2.png`
-- `screenshots/chatbot-flow_3.png`
+<p align="center">
+  <img src="screenshots/whatsapp-bot-preview.jpg" width="22%" style="margin-right: 1%;">
+  <img src="screenshots/chatbot-flow.jpg" width="22%" style="margin-right: 1%;">
+  <img src="screenshots/chatbot-flow_2.jpg" width="22%" style="margin-right: 1%;">
+  <img src="screenshots/chatbot-flow_3.jpg" width="22%">
+</p>
 
 ---
 
@@ -136,9 +136,3 @@ Developed with ❤️ by **Kevin Savaliya**
 [GitHub](https://github.com/kevin-savaliya)
 
 
-<p align="center">
-  <img src="screenshots/whatsapp-bot-preview.jpg" width="22%" style="margin-right: 1%;">
-  <img src="screenshots/chatbot-flow.jpg" width="22%" style="margin-right: 1%;">
-  <img src="screenshots/chatbot-flow_2.jpg" width="22%" style="margin-right: 1%;">
-  <img src="screenshots/chatbot-flow_3.jpg" width="22%">
-</p>
