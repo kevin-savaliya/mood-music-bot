@@ -136,13 +136,8 @@ Developed with ❤️ by **Kevin Savaliya**
 [GitHub](https://github.com/kevin-savaliya)
 
 
-![WhatsApp Screenshot](screenshots/whatsapp-bot-preview.jpg)
-![WhatsApp Screenshot](screenshots/chatbot-flow.jpg)
-![WhatsApp Screenshot](screenshots/chatbot-flow_2.jpg)
-![WhatsApp Screenshot](screenshots/chatbot-flow_3.jpg)
-
 <p align="center">
-  <img src="screenshots/hatsapp-bot-preview.jpg" width="22%" style="margin-right: 1%;">
+  <img src="screenshots/whatsapp-bot-preview.jpg" width="22%" style="margin-right: 1%;">
   <img src="screenshots/chatbot-flow.jpg" width="22%" style="margin-right: 1%;">
   <img src="screenshots/chatbot-flow_2.jpg" width="22%" style="margin-right: 1%;">
   <img src="screenshots/chatbot-flow_3.jpg" width="22%">
