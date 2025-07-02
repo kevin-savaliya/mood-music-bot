@@ -130,9 +130,15 @@ MIT License. Free to use and modify with credit.
 
 ---
 
-## 🙌 Author
 
-Developed with ❤️ by **Kevin Savaliya**  
-[GitHub](https://github.com/kevin-savaliya)
+## 👨‍💻 Author
+
+**Kevin Savaliya**
+
+* GitHub: [@kevin-savaliya](https://github.com/kevin-savaliya)
+
+---
+
+> ⭐️ **If you found this project helpful, please star the repository to support my work!**
 
 
